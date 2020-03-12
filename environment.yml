@@ -1,0 +1,17 @@
+name: scijava
+channels:
+  - conda-forge
+  - salilab
+dependencies:
+  - beakerx
+  - jupyter_contrib_nbextensions
+  - numpy
+  - openjdk=8
+  - pyimagej
+  - python
+  - imp
+  - rise
+  - scikit-image
+  - pip
+  - pip:
+    - git+https://github.com/Behrouz-Babaki/COP-Kmeans.git

@@ -5,17 +5,20 @@
 ### Requirements
 
 <p>The walkthrough is based on [Jupyter notebooks](https://jupyter.org/install). The rest of the requirements are basically the ones required by the [ImageJ tutorials](https://github.com/imagej/tutorials) plus the [Integrative Modeling Platform](https://integrativemodeling.org/) and the python implementation of the [Constrained K-means](https://github.com/Behrouz-Babaki/COP-Kmeans) algorithm are listed in the environment.yml file.</p>
+<p>The notebook has been tested under Ubuntu 18.04.4 and should work on most 64 bits linux systems</p>  
 <p>The easiest to install them in an isolated environment in to use [Miniconda](https://conda.io/miniconda.html). A way to install it could be:</p>
 
     wget --quiet --no-check-certificate https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh \
          -O ~/miniconda.sh && \
          /bin/bash ~/miniconda.sh -b && \
+         ~/miniconda2/bin/conda init && \
          rm ~/miniconda.sh
 
 <p>Then open follow this steps:</p>
 
 1. Clone this repository.
 2. Open a console and `cd` to your cloned working copy.
+3. `conda init` to initialize conda
 3. `conda env create -f environment.yml` to create a conda environment with the
    dependencies the notebook need.
 4. `conda activate scijava` to activate the environment.

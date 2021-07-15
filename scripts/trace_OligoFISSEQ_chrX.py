@@ -15,7 +15,7 @@ import IMP.container
 import sys
 
 def load_probes(input_file):
-    probes = []        
+    probes = []
     with open(input_file, 'r') as csvfile:
         csvreader = csv.reader(csvfile, delimiter='\t')
         header = next(csvreader, None)
@@ -37,7 +37,7 @@ def write_overlay(directory, models, prefix='', labels=None, roi_nbr=0):
                     if labels else ''
             if cur_chrom != chr and chr != '':
                 cur_ploid = labels[idx][i].split('-')[1]
-                cur_chrom = chr + '-' + cur_ploid 
+                cur_chrom = chr + '-' + cur_ploid
             out += form % (model['rand_init'], cur_chrom,
                            model['x'][i], model['y'][i], model['z'][i],labels[idx][i] if labels else '0')
     out_f = open('%s/%s-overlay-%d.csv' % (directory, prefix, roi_nbr), 'w')
@@ -53,10 +53,10 @@ def median(lst):
         return sortedLst[index]
     else:
         return (sortedLst[index] + sortedLst[index + 1])/2.0
-     
+
 def create_scoring(m, ps, locis, ploid, center_clusters,
                    chr_territory, chr_join_max_dist = 3.5):
-    
+
     restr = []
     pairs=[]
     for pl in range(ploid):
@@ -67,7 +67,7 @@ def create_scoring(m, ps, locis, ploid, center_clusters,
     pr= IMP.container.PairsRestraint(score, pc)
     pr.set_maximum_score(.01)
     restr.append(pr)
-    
+
     for pl in range(ploid):
         center_cluster = center_clusters[pl]
         parts = [ps[i] for i in range(pl*len(locis),(pl+1)*len(locis))]
@@ -81,7 +81,7 @@ def create_scoring(m, ps, locis, ploid, center_clusters,
         prs = IMP.container.SingletonsRestraint(scoren,sc)
         prs.set_maximum_score(.01)
         restr.append(prs)
-    
+
     return restr
 
 
@@ -99,9 +99,9 @@ def create_representation(m, locis, ploid, start_num_chr=0):
 
 def create_discrete_states(m, ps, locis, barcode_points, center_clusters,
                            ploid, fix_locis, probs):
-    
+
     pst = IMP.domino.ParticleStatesTable()
-    assigned_points = [[] for _ in range(len(locis)*ploid)]   
+    assigned_points = [[] for _ in range(len(locis)*ploid)]
     for i, part in enumerate(locis):
         #states = SpotStates(vs, intensities[i])
         ass_points = []
@@ -125,7 +125,7 @@ def create_discrete_states(m, ps, locis, barcode_points, center_clusters,
                     right_loci = list_assigned_right[min(list_assigned_right)]
                 closest_assigned = (-1,(np.array(right_loci)+np.array(left_loci))//2,0)
                 assigned_points[i+pl*len(locis)]= ass_points+[closest_assigned]
-                
+
         if use_fix:
             for pl in range(ploid):
                 points = [point[1] for point in assigned_points[i+pl*len(locis)]]
@@ -143,7 +143,7 @@ def create_discrete_states(m, ps, locis, barcode_points, center_clusters,
             vs = [IMP.algebra.Vector3D(point) for point in points]
             states = IMP.domino.XYZStates(vs)
             for pl in range(ploid):
-                pst.set_particle_states(m.get_particle(ps[i+pl*len(locis)]), states)    
+                pst.set_particle_states(m.get_particle(ps[i+pl*len(locis)]), states)
     return pst, assigned_points
 
 
@@ -177,7 +177,7 @@ def chunks(l, n):
 
 def get_constrained_clusters(best_patchs, nbr_chrs, min_cluster_separation, chr_territory,
                              max_locis_per_barcode = 4, min_loci_per_chr=2):
-    
+
     nbr_points_barcode = []
     points = []
     for barcode in best_patchs:
@@ -196,18 +196,18 @@ def get_constrained_clusters(best_patchs, nbr_chrs, min_cluster_separation, chr_
         cannot_link += [comb for comb in combinations(range(total_points,total_points+nbr_points),2)]
         total_points += nbr_points
     positions_xyz = np.array([np.array(pb_i['point']) for pb_i in points]).reshape(len(points),3)
-    
+
     detect_centers = []
     # Detect the expected clusters
     nbr_clusters = nbr_chrs
     if len(positions_xyz) >= nbr_clusters:
         clusters_ass, cluster_centers = cop_kmeans(dataset=positions_xyz, k=nbr_clusters, ml=[],cl=cannot_link)
-        # Maybe we have too much spots and 
+        # Maybe we have too much spots and
         # cannot be split
         if cluster_centers is None and len(positions_xyz) >= nbr_clusters+1:
             nbr_clusters += 1
             clusters_ass, cluster_centers = cop_kmeans(dataset=positions_xyz, k=nbr_clusters, ml=[],cl=cannot_link)
-        # If not try to get at least nbr_clusters-1 
+        # If not try to get at least nbr_clusters-1
         if cluster_centers is None and len(positions_xyz) >= nbr_clusters-1:
             nbr_clusters -= 1
             clusters_ass, cluster_centers = cop_kmeans(dataset=positions_xyz, k=nbr_clusters, ml=[],cl=cannot_link)
@@ -219,11 +219,11 @@ def get_constrained_clusters(best_patchs, nbr_chrs, min_cluster_separation, chr_
                 intensities_clust = sum([pb['intensity'] for pb_i, pb in enumerate(points) if clusters_ass[pb_i] == num_clust])
                 if len(set(barcode_clust)) >= min_loci_per_chr:
                     detect_centers.append({'intensity': intensities_clust/len(set(barcode_clust)),
-                                           'nbr_barcodes': len(set(barcode_clust)), 
+                                           'nbr_barcodes': len(set(barcode_clust)),
                                            'center':np.array(cluster_centers[num_clust])})
-                
+
     detect_centers = sorted(detect_centers,key=lambda k: (k['nbr_barcodes'],k['intensity']),reverse=True)
-    
+
     optim_centers = []
     for clust_cent in detect_centers:
         same_position = False
@@ -234,7 +234,7 @@ def get_constrained_clusters(best_patchs, nbr_chrs, min_cluster_separation, chr_
                 break
         if not same_position:
             optim_centers.append(clust_cent['center'])
-        
+
     return optim_centers
 
 if __name__ == "__main__":
@@ -248,17 +248,17 @@ if __name__ == "__main__":
                                                                    "threshold=",
                                                                    "outdir="])
     except getopt.GetoptError:
-        print('''domino_oligo_cluster_chrX.py -i --puncta_file -r --roi 
+        print('''domino_oligo_cluster_chrX.py -i --puncta_file -r --roi
             -c --chrs -b --barcode_file -n --rounds -s --shared_barcodes
             -t --threshold -o --outdir''')
         sys.exit(2)
-        
+
     chrs = roi = selected_roi = barcode_file = nbr_rounds  = outdir = None
     shared_barcodes = []
-    
+
     for opt, arg in opts:
         if opt == '-h':
-            print('''domino_oligo_cluster.py -i --puncta_file -r --roi 
+            print('''domino_oligo_cluster.py -i --puncta_file -r --roi
             -c --chrs -p --plex -o --outdir''')
             sys.exit()
         elif opt in ("-i", "--puncta_file"):
@@ -279,24 +279,24 @@ if __name__ == "__main__":
             outdir = arg
 
     puncta_filename = os.path.splitext(os.path.basename(puncta_file))[0]
-    
+
     probes = load_probes(barcode_file)
     barcodes = [int(probe['Readout']) for probe in probes]
     locis = [probe['Probe'] for probe in probes]
     chrs = chrs or list(set([(probe['Chr.'].split('p')[0]).split('q')[0] for probe in probes]))
-    
+
     print(puncta_file, chrs, roi, barcode_file, outdir, locis, chrs)
-    
+
     nbr_rounds = nbr_rounds or 5
-    
+
     nbr_barcode_subsample = 4
     min_nbr_pixels = 1
     min_nbr_pixels_best = 2
     min_loci_per_chr = 3
-    
+
     min_cluster_separation = 3.5
     max_best_locis = 6
-    threshold_mitotic = 2.5
+    threshold_mitotic = 3.6
     chr_join_max_dist_46plex = 2.5
     chr_join_max_dist_23plex = 3
     chr_territory = 3.5
@@ -316,15 +316,15 @@ if __name__ == "__main__":
                   ('SOLiD','4','MS','False'):(59000./(2**16-1),58000./(2**16-1),0),
                   ('IMR90','5','MSBS','False'):(61000./(2**16-1),60000./(2**16-1),0)}
     key_location = 'max_intensity'
-    
+
     if not os.path.exists(outdir):
         os.mkdir(outdir)
-    
+
     max_int_label = 'max_intensity'
     if threshold[0] == 'SOLiD':
         max_int_label = 'avg_intensity3'
     sel_threshold = thresholds[tuple(threshold)]
-    
+
     patches = OrderedDict((barc,[]) for barc in barcodes)
     totos = {}
     file_rois = []
@@ -360,7 +360,12 @@ if __name__ == "__main__":
                 if len(same_spots) > 0:
                     continue
                 patches[spot['barcode']].append(spot)
-            
+
+    output_file = open('%s/%s_out.tsv' % (outdir, puncta_filename), mode='w')
+    tsv_writer = csv.writer(output_file, delimiter='\t', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+    tsv_writer.writerow(['roi', 'chr', 'loci', 'pos_x', 'pos_y', 'pos_z', 'score',
+                         'nbr_pixels', 'max_intensity', 'match_barcodes'])
+
     all_intensities = []
     all_areas = []
     all_qualities = []
@@ -372,7 +377,7 @@ if __name__ == "__main__":
     min_intensity = median_intensity
     min_intensity_single_pixel = median_intensity*1.1
     print('Using filter by minimum intensity:', min_intensity, min_intensity_single_pixel)
-    
+
     all_labels = []
     models = []
     if not roi:
@@ -380,17 +385,14 @@ if __name__ == "__main__":
     else:
         selected_roi = [int(r) for r in roi]
     all_nbr_detected_loci = 0
-    output_file = open('%s/%s_out.tsv' % (outdir, puncta_filename), mode='w')
-    tsv_writer = csv.writer(output_file, delimiter='\t', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-    tsv_writer.writerow(['roi', 'chr', 'loci', 'pos_x', 'pos_y', 'pos_z', 'score',
-                         'nbr_pixels', 'max_intensity', 'match_barcodes'])
+
     all_best_patches = {}
     for roi_idx in selected_roi:
         print('Processing roi', roi_idx+1)
         labels = []
         nbr_detected_loci = 0
         total_possible_locis = 0
-                        
+
         chrom_centers = []
         detected_chrs = []
         avg_barcodes = 0
@@ -402,7 +404,7 @@ if __name__ == "__main__":
                 if barcode in shared_barcodes:
                     best_patchs[barcode] = []
                     continue
-                    
+
                 best_patchs[barcode] = [fp for fp in patches[barcode] if fp['roi'] == roi_idx
                                     and fp['match_barcodes']==nbr_rounds
                                     and fp[max_int_label]>sel_threshold[1]
@@ -411,9 +413,10 @@ if __name__ == "__main__":
                 best_patchs[barcode] = sorted(best_patchs[barcode],key=lambda k: k['max_intensity'],reverse=True)
                 if len(best_patchs[barcode]) > 0:
                     avg_barcodes = (avg_barcodes + len(best_patchs[barcode]))
-            
+
             all_best_patches.update(best_patchs)
-        
+
+        avg_barcodes /= sum([1 for fp in all_best_patches if len(all_best_patches[fp])>0])
         # decide with if this cell is in M phase
         ploidy = 1
         diploid_chroms = [chrom for chrom in chrs if chrom != 'X']
@@ -430,16 +433,16 @@ if __name__ == "__main__":
             if chrom == 'X':
                 max_nbr_chrs = 1*ploidy
             nbr_max_best_locis = max_nbr_chrs
-            
+
             best_patchs = {barcode: all_best_patches[barcode] for barcode in chrom_barcodes if barcode not in shared_barcodes}
-            c_cluster = get_constrained_clusters(best_patchs, max_nbr_chrs, min_cluster_separation, 
+            c_cluster = get_constrained_clusters(best_patchs, max_nbr_chrs, min_cluster_separation,
                                                  chr_territory, max_locis_per_barcode=nbr_max_best_locis,
                                                  min_loci_per_chr=min_loci_per_chr)
             if c_cluster is not None:
                 detected_chrs.append(chrom)
                 chrom_centers.append(c_cluster)
                 print('Centers for chromosome ', chrom, c_cluster)
-                            
+
         if len(chrom_centers) == 0:
             continue
 
@@ -463,7 +466,7 @@ if __name__ == "__main__":
             chr_join_max_dist = chr_join_max_dist_23plex
             if len(chrom_barcodes) > 23:
                 chr_join_max_dist = chr_join_max_dist_46plex
-                
+
             used_nbr_chrs = len(center_clusters)
             coord_loci = None
             for barcode_category in ['strong positives','full barcodes','subsampling']:
@@ -479,7 +482,7 @@ if __name__ == "__main__":
                     match_barcodes_threshold = nbr_barcode_subsample
                     min_intensity_threshold = min_intensity
                     min_toto_threshold = 0
-                
+
                 for barcode in chrom_barcodes:
                     roi_intensities += [{'id': fp_id, 'barcode': barcode, 'max_intensity': fp['max_intensity']}
                                         for fp_id, fp in enumerate(patches[barcode]) if fp['roi'] == roi_idx
@@ -503,23 +506,23 @@ if __name__ == "__main__":
                                                       key=lambda k: (patches[barcode][k]['match_barcodes'],
                                                                      patches[barcode][k]['nbr_pixels']),
                                                       reverse=True)[:used_max_points_domino]
-                    
-                    used_barcodes += min(used_barcode_step,len(roi_intensities)) 
+
+                    used_barcodes += min(used_barcode_step,len(roi_intensities))
                     if sum([len(patches_ids[barcode]) for barcode in chrom_barcodes]) == 0:
                         continue
-                        
+
                     chrom_locis = [loci for loci in locis if loci[:len(chrom)] == chrom]
                     points_barcodes = []
                     intensities = []
                     points = []
                     if not coord_loci:
                         coord_loci = [None]*used_nbr_chrs*len(chrom_locis)
-                    
+
                     IMP.set_log_level(IMP.SILENT)
                     m = IMP.Model()
                     # don't print information during Model.evaluate
                     m.set_log_level(IMP.SILENT)
-                    
+
                     all_points_barcode = None
                     used_spots_ids = dict((barcode,[]) for barcode in chrom_barcodes)
                     for clust_num,clus in enumerate(center_clusters):
@@ -539,18 +542,18 @@ if __name__ == "__main__":
                                                                                  pb_i[key_location+'_pixel_y'],
                                                                                  pb_i[key_location+'_pixel_z']])))
                                     used_spots_ids[barcode].append(b_id)
-                            points_barcodes.append(points_barcode) 
-                        
+                            points_barcodes.append(points_barcode)
+
                         if all_points_barcode:
                             all_points_barcode = [all_point_barcode+point_barcode
                                                   for all_point_barcode,point_barcode in zip(all_points_barcode,points_barcodes)]
                         else:
                             all_points_barcode = points_barcodes
-                    
+
                     probs = [[
                               (pb_i[1]['nbr_pixels']-min(all_areas))/max(all_areas) + \
                               (float(pb_i[1]['max_intensity'])-min(all_intensities))/max(all_intensities)
-                              for pb_i in points_barcode] 
+                              for pb_i in points_barcode]
                                    for points_barcode in all_points_barcode]
                     ps = create_representation(m, chrom_locis, used_nbr_chrs)
                     pst, assigned_points = create_discrete_states(m, ps, chrom_locis, all_points_barcode, center_clusters,
@@ -558,12 +561,12 @@ if __name__ == "__main__":
                     rs = create_scoring(m, ps, chrom_locis, used_nbr_chrs, center_clusters, used_chr_territory,
                                         chr_join_max_dist=chr_join_max_dist)
                     s = create_sampler(m, rs, pst, coord_loci)
-                
+
                     subset = pst.get_subset()
                     ps_subset = sorted(range(len(subset)), key=lambda k: subset[k].get_index())
                     print("getting solutions")
                     solutions = s.get_sample_assignments(subset)
-                    
+
                     if len(solutions) == 0:
                         print("There are no solutions to the problem")
                     else:
@@ -581,7 +584,7 @@ if __name__ == "__main__":
                                     real_ass_points = [ass_points[k][1] for k in range(pl_n*len(chrom_locis),(pl_n+1)*len(chrom_locis)) if ass_points[k][0]>=0]
                                     for p in range(len(real_ass_points)-1):
                                         total_length += np.linalg.norm(real_ass_points[p+1]-real_ass_points[p])
-                                
+
                                 total_prob = sum([assigned_points[i+pl*len(chrom_locis)][assignment[ps_subset[i+pl*len(chrom_locis)]]][2]
                                                   for i in range(len((chrom_locis))) for pl in range(used_nbr_chrs)])
                                 ass_prob.append({'assignment':assignment,'prob':total_prob, 'length': total_length})
@@ -590,7 +593,7 @@ if __name__ == "__main__":
                             ass_prob = [ap for ap in ass_prob if ap['prob']==most_probable]
                             ass_prob = sorted(ass_prob, key=lambda k: k['length'])
                             best_solution.append(ass_prob[0])
-                        
+
                         ass_prob = best_solution
                         ass_prob = sorted(ass_prob, key=lambda k: k['prob'],reverse=True)
                         most_probable = ass_prob[0]['prob']
@@ -620,13 +623,13 @@ if __name__ == "__main__":
                     idx_subset = ps_subset[id_p+pl_n*len(chrom_locis)]
                     if coord_loci[id_p+pl_n*len(chrom_locis)] is None:
                         continue
-                    label_loci = subset[idx_subset] 
+                    label_loci = subset[idx_subset]
                     model['x'].append(coord_loci[id_p+pl_n*len(chrom_locis)][1][0])
                     model['y'].append(coord_loci[id_p+pl_n*len(chrom_locis)][1][1])
                     model['z'].append(coord_loci[id_p+pl_n*len(chrom_locis)][1][2])
                     labels.append(str(label_loci).replace('"',''))
                     nbr_detected_loci += 1
-                    
+
                     lab_roi_idx = str(roi_idx) if pl_n == 0 else str(roi_idx)+'-'+str(pl_n+1)
                     row_loci = [lab_roi_idx, chrom, str(label_loci).replace('"','')]+list(coord_loci[id_p+pl_n*len(chrom_locis)][1]) + \
                         [coord_loci[id_p+pl_n*len(chrom_locis)][2],
@@ -639,5 +642,5 @@ if __name__ == "__main__":
             print('Percentage of detected loci for roi %d, %f' % (roi_idx, 100*(float(nbr_detected_loci)/float(total_possible_locis))))
             all_nbr_detected_loci += (float(nbr_detected_loci)/float(total_possible_locis))
     output_file.close()
-    print('Percentage of detected loci, %f' % (100*(float(all_nbr_detected_loci)/len(selected_roi))))                
+    print('Percentage of detected loci, %f' % (100*(float(all_nbr_detected_loci)/len(selected_roi))))
     write_overlay(directory=outdir, models=models, prefix=puncta_filename, labels=all_labels, roi_nbr=roi_idx)
